@@ -1,0 +1,97 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String    @id @default(uuid())
+  username     String?   @unique
+  passwordHash String?
+  lineUserId   String?   @unique
+  role         Role
+  name         String
+  vehicles     Vehicle[]
+}
+
+model Vehicle {
+  id          String        @id @default(uuid())
+  name        String
+  plateNumber String
+  capacityKg  Float
+  driverId    String?
+  driver      User?         @relation(fields: [driverId], references: [id])
+  status      VehicleStatus @default(ACTIVE)
+  routes      Route[]
+}
+
+model Location {
+  id               String       @id @default(uuid())
+  name             String
+  address          String
+  latitude         Float
+  longitude        Float
+  contactPhone     String?
+  expectedWeightKg Float        @default(100)
+  routePoints      RoutePoint[]
+}
+
+model Route {
+  id              String       @id @default(uuid())
+  vehicleId       String
+  vehicle         Vehicle      @relation(fields: [vehicleId], references: [id])
+  date            DateTime
+  status          RouteStatus  @default(PENDING)
+  totalWeightKg   Float        @default(0)
+  distanceMeters  Float        @default(0)
+  durationSeconds Float        @default(0)
+  routePoints     RoutePoint[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model RoutePoint {
+  id                 String           @id @default(uuid())
+  routeId            String
+  route              Route            @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  locationId         String
+  location           Location         @relation(fields: [locationId], references: [id])
+  sequenceOrder      Int
+  expectedWeightKg   Float
+  actualWeightKg     Float?
+  status             RoutePointStatus @default(PENDING)
+  failureReason      String?
+  collectedAt        DateTime?
+  notes              String?
+}
+
+enum Role {
+  DISPATCHER
+  DRIVER
+}
+
+enum VehicleStatus {
+  ACTIVE
+  MAINTENANCE
+  INACTIVE
+}
+
+enum RouteStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum RoutePointStatus {
+  PENDING
+  COLLECTED
+  SKIPPED
+  ISSUE
+}

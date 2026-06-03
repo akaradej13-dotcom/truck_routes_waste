@@ -1,0 +1,103 @@
+{
+  "project": "Recycle Route Optimizer",
+  "version": "1.1.0",
+  "description": "Internal route planning and optimization system for recycling collection trucks, featuring LINE LIFF integration for drivers.",
+  "tech_stack": {
+    "frontend_dispatcher": "Next.js (App Router), React, TailwindCSS, Leaflet",
+    "frontend_driver": "LINE LIFF (LINE Front-end Framework) / React SPA with TailwindCSS",
+    "backend": "Next.js Route Handlers (Node.js API) & LINE Messaging API SDK",
+    "database": "PostgreSQL with Prisma ORM",
+    "routing_engine": "OSRM (Open Source Routing Machine)",
+    "optimization_engine": "Google OR-Tools / JS-based heuristic for CVRP"
+  },
+  "database_schema": {
+    "User": {
+      "columns": {
+        "id": "String (UUID, PK)",
+        "username": "String (Unique, Nullable for Driver)",
+        "password_hash": "String (Nullable for Driver)",
+        "line_user_id": "String (Unique, Nullable for Driver login integration)",
+        "role": "Enum (DISPATCHER, DRIVER)",
+        "name": "String"
+      }
+    },
+    "Vehicle": {
+      "columns": {
+        "id": "String (UUID, PK)",
+        "name": "String",
+        "plate_number": "String",
+        "capacity_kg": "Float",
+        "driver_id": "String (FK to User, Nullable)",
+        "status": "Enum (ACTIVE, MAINTENANCE, INACTIVE)"
+      }
+    },
+    "Location": {
+      "columns": {
+        "id": "String (UUID, PK)",
+        "name": "String",
+        "address": "String",
+        "latitude": "Float",
+        "longitude": "Float",
+        "contact_phone": "String (Nullable)"
+      }
+    },
+    "Route": {
+      "columns": {
+        "id": "String (UUID, PK)",
+        "vehicle_id": "String (FK to Vehicle)",
+        "date": "Date",
+        "status": "Enum (PENDING, IN_PROGRESS, COMPLETED, CANCELLED)",
+        "total_weight_kg": "Float",
+        "created_at": "DateTime",
+        "updated_at": "DateTime"
+      }
+    },
+    "RoutePoint": {
+      "columns": {
+        "id": "String (UUID, PK)",
+        "route_id": "String (FK to Route)",
+        "location_id": "String (FK to Location)",
+        "sequence_order": "Int",
+        "expected_weight_kg": "Float",
+        "actual_weight_kg": "Float (Nullable)",
+        "status": "Enum (PENDING, COLLECTED, SKIPPED, ISSUE)",
+        "failure_reason": "String (Nullable)",
+        "collected_at": "DateTime (Nullable)",
+        "notes": "String (Nullable)"
+      }
+    }
+  },
+  "features": [
+    {
+      "id": "F01",
+      "name": "Dispatcher Dashboard & Batch Import",
+      "description": "ระบบหลังบ้านสำหรับผู้จัดคิวรถในการนำเข้าพิกัดและติดตามการทำงานผ่านแดชบอร์ดแผนที่",
+      "tasks": [
+        "Create CSV/Excel parsing route for daily locations import",
+        "Build Leaflet-based map view showcasing active vehicles and collection points",
+        "Design route management list to manually re-assign or adjust point order"
+      ]
+    },
+    {
+      "id": "F02",
+      "name": "Route Optimization Engine",
+      "description": "ส่วนคำนวณและประมวลผลจัดเส้นทางอัจฉริยะ (CVRP) บนฐาน OSRM",
+      "tasks": [
+        "Integrate OSRM API / Docker container for distance/time matrix calculation",
+        "Implement Capacitated Vehicle Routing Problem (CVRP) clustering & routing algorithm",
+        "Develop background job to run optimization and generate daily routes automatically"
+      ]
+    },
+    {
+      "id": "F03",
+      "name": "Driver App via LINE LIFF",
+      "description": "แอปพลิเคชันฝั่งคนขับรถ ทำงานบนหน้าต่าง LINE Chat ผ่านเทคโนโลยี LIFF",
+      "tasks": [
+        "Setup LINE Developers Console, create LIFF App and link with the frontend URL",
+        "Implement LINE Login Integration to auto-authenticate drivers using line_user_id",
+        "Build mobile-first task list inside LIFF with buttons for External Navigation (Google Maps) and job reporting",
+        "Configure LocalStorage caching and offline synchronization queue for report submission during internet drops"
+      ]
+    }
+  ]
+}

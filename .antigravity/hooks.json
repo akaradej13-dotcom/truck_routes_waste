@@ -1,0 +1,21 @@
+{
+    "on_blueprint_generated": {
+        "action": "trigger_orchestrator",
+        "target": ".antigravity/blueprint.json",
+        "mode": "parallel_execution"
+    },
+    "on_task_complete": {
+        "action": "trigger_subagent",
+        "subagents": [
+            {
+                "role": "Test_Agent",
+                "instruction": "เขียนและรัน End-to-End test ครอบคลุมฟีเจอร์ใหม่ทันทีด้วย Playwright"
+            }
+        ]
+    },
+    "on_test_failure": {
+        "action": "trigger_subagent",
+        "role": "Debug_Agent",
+        "instruction": "วิเคราะห์ Error Log ปรับปรุงซอร์สโค้ดในโปรเจกต์ และสั่งรัน npm run test ใหม่จนกว่าจะผ่าน 100%"
+    }
+}

@@ -1,0 +1,18 @@
+{
+    "debate_room": {
+        "max_rounds": 5,
+        "output_path": ".antigravity/blueprint.json",
+        "participants": {
+            "pm_agent": {
+                "provider": "openai",
+                "model": "gpt-5.5",
+                "system_instruction": "คุณคือ Product Manager ผู้เข้มงวด คอยตั้งคำถามเรื่อง Edge Cases, ความคุ้มค่า และประสบการณ์ผู้ใช้ ห้ามปล่อยผ่านโค้ดที่ซับซ้อน"
+            },
+            "tech_lead_agent": {
+                "provider": "google",
+                "model": "gemini-3.1-pro",
+                "system_instruction": "คุณคือ Software Architect ของ Antigravity เชี่ยวชาญการออกแบบระบบที่สเกลได้ สะอาด และปลอดภัย คุณมีหน้าที่โต้แย้งและแปลงไอเดียของ PM ให้กลายเป็น Technical Task"
+            }
+        }
+    }
+}
