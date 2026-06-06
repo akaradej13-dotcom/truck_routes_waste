@@ -72,7 +72,6 @@ function generateFlexBubble(
       layout: "horizontal",
       spacing: "md",
       margin: idx === 0 ? "none" : "md",
-      alignItems: "center",
       contents: [
         {
           type: "text",
@@ -80,7 +79,8 @@ function generateFlexBubble(
           size: "sm",
           weight: "bold",
           color: "#10B981",
-          flex: 1
+          flex: 1,
+          gravity: "center"
         },
         {
           type: "box",
@@ -93,8 +93,7 @@ function generateFlexBubble(
               size: "xs",
               weight: "bold",
               color: "#FFFFFF",
-              maxLines: 1,
-              ellipsize: true
+              maxLines: 1
             },
             {
               type: "text",
@@ -112,7 +111,8 @@ function generateFlexBubble(
           weight: "bold",
           color: "#34D399",
           align: "end",
-          flex: 3
+          flex: 3,
+          gravity: "center"
         }
       ]
     };
@@ -198,8 +198,7 @@ function generateFlexBubble(
                 size: "sm",
                 color: "#FFFFFF",
                 margin: "sm",
-                maxLines: 1,
-                ellipsize: true
+                maxLines: 1
               },
               {
                 type: "box",
@@ -443,7 +442,13 @@ _________________
         // Send reply via LINE Reply API
         if (replyToken && replyToken !== "test-token" && channelAccessToken) {
           const messageObj = flexBubble || { type: "text", text: responseText };
-          await sendLineReply(replyToken, messageObj, channelAccessToken);
+          try {
+            await sendLineReply(replyToken, messageObj, channelAccessToken);
+          } catch (replyErr: any) {
+            console.error("Failed to send LINE Flex message, falling back to text response:", replyErr);
+            const fallbackMessageObj = { type: "text", text: responseText };
+            await sendLineReply(replyToken, fallbackMessageObj, channelAccessToken);
+          }
         } else {
           // Log output during testing/signature bypass simulation
           console.log(`\n--- [LINE WEBHOOK SIMULATION REPLY] ---`);
