@@ -18,7 +18,8 @@ import {
   Weight,
   Navigation,
   Clock,
-  ChevronRight
+  ChevronRight,
+  MessageSquare
 } from "lucide-react";
 
 // Dynamically import Leaflet Map Component with SSR disabled to prevent server-side window errors
@@ -69,6 +70,7 @@ export default function DispatcherPage() {
   const [locations, setLocations] = useState<LocationData[]>([]);
   const [vehicles, setVehicles] = useState<VehicleData[]>([]);
   const [routes, setRoutes] = useState<RouteData[]>([]);
+  const [lineConfig, setLineConfig] = useState<{ lineConfigured: boolean; bypassSignature: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [calculating, setCalculating] = useState(false);
@@ -79,23 +81,26 @@ export default function DispatcherPage() {
 
   const fetchData = async () => {
     try {
-      const [locsRes, vehsRes, routesRes] = await Promise.all([
+      const [locsRes, vehsRes, routesRes, configRes] = await Promise.all([
         fetch("/api/locations"),
         fetch("/api/vehicles"),
-        fetch("/api/routes")
+        fetch("/api/routes"),
+        fetch("/api/config")
       ]);
       
-      if (!locsRes.ok || !vehsRes.ok || !routesRes.ok) {
+      if (!locsRes.ok || !vehsRes.ok || !routesRes.ok || !configRes.ok) {
         throw new Error("ล้มเหลวในการเชื่อมต่อข้อมูลเซิร์ฟเวอร์");
       }
 
       const locsData = await locsRes.json();
       const vehsData = await vehsRes.json();
       const routesData = await routesRes.json();
+      const configData = await configRes.json();
       
       setLocations(locsData);
       setVehicles(vehsData);
       setRoutes(routesData);
+      setLineConfig(configData);
     } catch (e: any) {
       setError(e.message || "เกิดข้อผิดพลาดในการโหลดข้อมูล");
     } finally {
@@ -303,6 +308,44 @@ export default function DispatcherPage() {
               <Play className="h-4 w-4" />
               {calculating ? "กำลังประมวลผลระบบ OSRM..." : "คำนวณเส้นทาง (Run CVRP)"}
             </button>
+          </div>
+
+          {/* LINE Webhook Connection Card */}
+          <div className="p-6 bg-zinc-900/50 rounded-2xl border border-zinc-800 backdrop-blur-sm">
+            <h2 className="text-lg font-bold text-zinc-200 mb-4 flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-emerald-500" />
+              การเชื่อมต่อ LINE Bot Webhook
+            </h2>
+            
+            <div className="flex flex-col gap-3.5 text-xs">
+              <div className="flex items-center justify-between py-2 border-b border-zinc-850">
+                <span className="text-zinc-400">สถานะการตั้งค่าบอท:</span>
+                {lineConfig?.lineConfigured ? (
+                  <span className="px-2 py-0.5 bg-emerald-950 text-emerald-400 border border-emerald-900 rounded font-semibold flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    เชื่อมต่อแล้ว (Active)
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 bg-amber-950/60 text-amber-400 border border-amber-900/40 rounded font-semibold flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                    Bypass Mode (จำลอง)
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-zinc-500 font-medium block">Webhook URL สำหรับ LINE Console:</span>
+                <div className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-850 font-mono text-[10px] text-zinc-350 break-all select-all flex items-center justify-between">
+                  <span>https://&lt;your-domain&gt;/api/line/webhook</span>
+                </div>
+              </div>
+
+              <div className="space-y-1 mt-2.5 p-3 bg-zinc-950/40 rounded-xl border border-zinc-850/60 text-zinc-400 leading-relaxed">
+                <span className="text-zinc-350 font-bold block mb-1">💡 รูปแบบการพิมพ์คำสั่งใน LINE:</span>
+                <p className="font-mono text-zinc-300">"วันที่ 12 มิ.ย. รับขยะพลาสติกที่สยามพารากอน 150 กก."</p>
+                <p className="text-[10px] text-zinc-500 mt-1">*สามารถใช้สคริปต์ test_webhook.js ในการทดสอบคิวงานขยะของแต่ละวันได้</p>
+              </div>
+            </div>
           </div>
 
           {/* Feedback Alerts */}

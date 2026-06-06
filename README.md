@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Recycle Route Optimizer 🚚♻️
 
-## Getting Started
+ระบบจัดการและวางแผนเส้นทางเดินรถสำหรับเก็บขยะอัจฉริยะ (Route Optimization) พร้อมการทำงานร่วมกับ LINE Webhook และ LINE LIFF
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🤖 ระบบรับคิวงานขยะผ่าน LINE Webhook (ฟีเจอร์ใหม่)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+คุณสามารถพิมพ์แจ้งจุดรับขยะผ่านทางแชตไลน์ของ LINE Bot ได้โดยตรง โดยพิมพ์ระบุ **วันรับขยะ**, **ประเภทขยะ**, และ **สถานที่รับขยะ**
+ระบบจะทำการบันทึกข้อมูลเข้าฐานข้อมูลและตอบกลับด้วยคิวเดินรถและจุดรับทั้งหมดประจำวันเดียวกันนั้นทันที
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### ตัวอย่างรูปแบบข้อความที่รองรับ
+- *"วันที่ 12 มิ.ย. รับขยะพลาสติกที่สยามพารากอน 150 กก."*
+- *"วันที่ 18/06/2026 เก็บเศษกระดาษที่เซ็นทรัล อีสต์วิลล์"*
+- *"พรุ่งนี้ เก็บขยะทั่วไปที่สวนลุมพินี"*
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🛠️ ขั้นตอนการตั้งค่า LINE Developers Console
 
-To learn more about Next.js, take a look at the following resources:
+หากต้องการใช้งานกับ LINE Bot จริง ให้ทำตามขั้นตอนดังนี้:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. สมัครใช้งาน **LINE Developers Console** และสร้าง **Provider**
+2. สร้าง Channel ชนิด **Messaging API**
+3. ไปที่แท็บ **Messaging API** ของ Channel ที่สร้างขึ้น:
+   - คัดลอก **Channel Access Token** มาใส่ในไฟล์ `.env` ที่ตัวแปร `LINE_CHANNEL_ACCESS_TOKEN`
+   - ไปที่เมนู **Webhook settings**:
+     - เปิดใช้งาน **Use webhook**
+     - ตั้งค่า **Webhook URL** เป็นพอร์ตสาธารณะของคุณ เช่น: `https://<โดเมนจำลองหรือโดเมนจริงของคุณ>/api/line/webhook` (เช่น ผ่าน ngrok: `https://xxxx.ngrok-free.app/api/line/webhook`)
+4. ไปที่แท็บ **Basic settings**:
+   - คัดลอก **Channel Secret** มาใส่ในไฟล์ `.env` ที่ตัวแปร `LINE_CHANNEL_SECRET`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 🚀 วิธีการทดสอบบนเครื่อง Local
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+เนื่องจากการเชื่อมต่อจริงต้องการโดเมนที่เป็น HTTPS ทางเราได้จัดเตรียมสคริปต์จำลองไว้ให้ใช้งานและพัฒนาได้ง่ายในเครื่อง:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. ตรวจสอบให้แน่ใจว่าได้ระบุค่า `BYPASS_LINE_SIGNATURE="true"` ในไฟล์ `.env` เรียบร้อยแล้ว
+2. เริ่มรันเซิร์ฟเวอร์ Next.js:
+   ```bash
+   npm run dev
+   ```
+3. รันสคริปต์ส่ง Request จำลองข้อมูล:
+   ```bash
+   npx tsx scripts/test_webhook.js
+   ```
+   ระบบจะจำลองการประมวลผลข้อความภาษาไทย บันทึกลงฐานข้อมูล SQLite และแสดงตัวอย่างข้อความที่ LINE Bot จะตอบกลับบน Console ของ Dev server ทันที!

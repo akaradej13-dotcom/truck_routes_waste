@@ -78,6 +78,7 @@ const sampleLocations = [
 async function main() {
   console.log("ล้างข้อมูลเก่า...");
   await prisma.routePoint.deleteMany();
+  await prisma.route.deleteMany();
   await prisma.location.deleteMany();
   await prisma.vehicle.deleteMany();
   await prisma.user.deleteMany();
