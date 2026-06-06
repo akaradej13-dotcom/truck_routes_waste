@@ -182,7 +182,7 @@ function generateFlexBubble(
             borderColor: "#27272A",
             borderWidth: "1px",
             cornerRadius: "md",
-            paddingAll": "md",
+            paddingAll: "md",
             contents: [
               {
                 type: "text",
