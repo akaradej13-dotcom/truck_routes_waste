@@ -20,7 +20,7 @@ function verifySignature(body: string, signature: string, channelSecret: string)
 /**
  * Send a reply message back to LINE
  */
-async function sendLineReply(replyToken: string, text: string, accessToken: string) {
+async function sendLineReply(replyToken: string, messageObj: any, accessToken: string) {
   const res = await fetch("https://api.line.me/v2/bot/message/reply", {
     method: "POST",
     headers: {
@@ -29,12 +29,7 @@ async function sendLineReply(replyToken: string, text: string, accessToken: stri
     },
     body: JSON.stringify({
       replyToken,
-      messages: [
-        {
-          type: "text",
-          text,
-        },
-      ],
+      messages: [messageObj],
     }),
   });
 
@@ -43,6 +38,218 @@ async function sendLineReply(replyToken: string, text: string, accessToken: stri
     console.error(`LINE Reply API failed (${res.status}):`, errorBody);
     throw new Error(`LINE Reply API failed: ${res.statusText}`);
   }
+}
+
+/**
+ * Generate a premium LINE Flex Message card for daily schedules
+ */
+function generateFlexBubble(
+  dateStr: string,
+  result: { locationName: string; item: string; weight: number },
+  routesOnDate: any[]
+) {
+  const pointsList: any[] = [];
+  for (const r of routesOnDate) {
+    for (const pt of r.routePoints) {
+      pointsList.push({
+        name: pt.location.name,
+        item: pt.notes || "ขยะทั่วไป",
+        weight: pt.expectedWeightKg,
+        plate: r.vehicle.plateNumber,
+        status: pt.status
+      });
+    }
+  }
+
+  const maxDisplay = 6;
+  const displayedPoints = pointsList.slice(0, maxDisplay);
+  const remainingCount = pointsList.length - maxDisplay;
+
+  const pointContents = displayedPoints.map((pt, idx) => {
+    const sequenceNum = String(idx + 1).padStart(2, "0");
+    return {
+      type: "box",
+      layout: "horizontal",
+      spacing: "md",
+      margin: idx === 0 ? "none" : "md",
+      alignItems: "center",
+      contents: [
+        {
+          type: "text",
+          text: sequenceNum,
+          size: "sm",
+          weight: "bold",
+          color: "#10B981",
+          flex: 1
+        },
+        {
+          type: "box",
+          layout: "vertical",
+          flex: 6,
+          contents: [
+            {
+              type: "text",
+              text: pt.name,
+              size: "xs",
+              weight: "bold",
+              color: "#FFFFFF",
+              maxLines: 1,
+              ellipsize: true
+            },
+            {
+              type: "text",
+              text: `งาน: ${pt.item} • รถ: ${pt.plate}`,
+              size: "xxs",
+              color: "#71717A",
+              margin: "xs"
+            }
+          ]
+        },
+        {
+          type: "text",
+          text: `${pt.weight} กก.`,
+          size: "xs",
+          weight: "bold",
+          color: "#34D399",
+          align: "end",
+          flex: 3
+        }
+      ]
+    };
+  });
+
+  if (remainingCount > 0) {
+    pointContents.push({
+      type: "box",
+      layout: "horizontal",
+      margin: "md",
+      contents: [
+        {
+          type: "text",
+          text: `... และอีก ${remainingCount} รายการรับขยะในวันเดียวกัน`,
+          size: "xs",
+          color: "#71717A",
+          style: "italic"
+        }
+      ]
+    } as any);
+  }
+
+  return {
+    type: "flex",
+    altText: "แผนเดินรถเก็บขยะรายวัน 🚚",
+    contents: {
+      type: "bubble",
+      size: "giga",
+      styles: {
+        header: {
+          backgroundColor: "#064E3B"
+        },
+        body: {
+          backgroundColor: "#09090B"
+        }
+      },
+      header: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "text",
+            text: "แผนเดินรถเก็บขยะรายวัน 🚚",
+            weight: "bold",
+            size: "md",
+            color: "#FFFFFF"
+          },
+          {
+            type: "text",
+            text: `ประจำวันที่ ${dateStr}`,
+            size: "xs",
+            color: "#A7F3D0",
+            margin: "xs"
+          }
+        ]
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        contents: [
+          // Highlight Box (New Record)
+          {
+            type: "box",
+            layout: "vertical",
+            backgroundColor: "#18181B",
+            borderColor: "#27272A",
+            borderWidth: "1px",
+            cornerRadius: "md",
+            paddingAll": "md",
+            contents: [
+              {
+                type: "text",
+                text: "📥 เพิ่มรายการล่าสุดสำเร็จ",
+                size: "xs",
+                color: "#10B981",
+                weight: "bold"
+              },
+              {
+                type: "text",
+                text: result.locationName,
+                weight: "bold",
+                size: "sm",
+                color: "#FFFFFF",
+                margin: "sm",
+                maxLines: 1,
+                ellipsize: true
+              },
+              {
+                type: "box",
+                layout: "horizontal",
+                margin: "sm",
+                contents: [
+                  {
+                    type: "text",
+                    text: `ประเภท: ${result.item}`,
+                    size: "xs",
+                    color: "#A1A1AA"
+                  },
+                  {
+                    type: "text",
+                    text: `คาดการณ์: ${result.weight} กก.`,
+                    size: "xs",
+                    color: "#34D399",
+                    align: "end",
+                    weight: "bold"
+                  }
+                ]
+              }
+            ]
+          },
+          // Separator
+          {
+            type: "separator",
+            color: "#27272A",
+            margin: "md"
+          },
+          // Title for list
+          {
+            type: "text",
+            text: `📋 คิวงานวันเดียวกัน (รวมทั้งหมด ${pointsList.length} จุด):`,
+            size: "xs",
+            color: "#A1A1AA",
+            weight: "bold",
+            margin: "sm"
+          },
+          // Points List
+          {
+            type: "box",
+            layout: "vertical",
+            spacing: "xs",
+            contents: pointContents
+          }
+        ]
+      }
+    }
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -83,6 +290,7 @@ export async function POST(request: NextRequest) {
         console.log("Parsed message result:", parsed);
 
         let responseText = "";
+        let flexBubble: any = null;
 
         if (!parsed) {
           // Provide guidance on how to use the bot
@@ -227,11 +435,15 @@ export async function POST(request: NextRequest) {
 ⚖️ น้ำหนักคาดการณ์: ${result.weight} กก.
 _________________
 📋 คิวงานทั้งหมดประจำวันที่ ${thaiFormattedDate}:${scheduleText || "\n(ยังไม่มีคิวงานอื่น)"}`;
+
+          // Generate Flex Message
+          flexBubble = generateFlexBubble(thaiFormattedDate, result, routesOnDate);
         }
 
         // Send reply via LINE Reply API
         if (replyToken && replyToken !== "test-token" && channelAccessToken) {
-          await sendLineReply(replyToken, responseText, channelAccessToken);
+          const messageObj = flexBubble || { type: "text", text: responseText };
+          await sendLineReply(replyToken, messageObj, channelAccessToken);
         } else {
           // Log output during testing/signature bypass simulation
           console.log(`\n--- [LINE WEBHOOK SIMULATION REPLY] ---`);
