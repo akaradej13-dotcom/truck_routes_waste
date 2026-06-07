@@ -181,12 +181,12 @@ export default function DispatcherPage() {
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col selection:bg-emerald-500 selection:text-black">
       {/* Header */}
       <header className="border-b border-zinc-800 bg-zinc-900/40 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/" className="p-2 hover:bg-zinc-800 rounded-xl transition-colors">
               <ArrowLeft className="h-5 w-5 text-zinc-400" />
             </Link>
-            <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-1.5 sm:gap-2">
               <span>Dispatcher Dashboard</span>
               <span className="text-xs px-2 py-0.5 bg-emerald-950 text-emerald-400 border border-emerald-900 rounded font-semibold">
                 PHASE 3
@@ -194,7 +194,7 @@ export default function DispatcherPage() {
             </h1>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-zinc-400 flex items-center gap-2 bg-zinc-900 px-3 py-1.5 rounded-lg border border-zinc-800">
+            <span className="text-sm text-zinc-400 hidden sm:flex items-center gap-2 bg-zinc-900 px-3 py-1.5 rounded-lg border border-zinc-800">
               <Calendar className="h-4 w-4 text-emerald-500" />
               {new Date().toLocaleDateString("th-TH", {
                 year: "numeric",
@@ -207,10 +207,10 @@ export default function DispatcherPage() {
       </header>
 
       {/* Main Grid Layout */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 grid lg:grid-cols-3 gap-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid lg:grid-cols-3 gap-4 sm:gap-6">
         
         {/* Left Side: Upload & Control Panel */}
-        <div className="lg:col-span-1 flex flex-col gap-6">
+        <div className="lg:col-span-1 flex flex-col gap-4 sm:gap-6">
           
           {/* Statistics Box */}
           <div className="grid grid-cols-2 gap-4">
@@ -233,7 +233,7 @@ export default function DispatcherPage() {
           </div>
           
           {/* Upload Card */}
-          <div className="p-6 bg-zinc-900/50 rounded-2xl border border-zinc-800 backdrop-blur-sm">
+          <div className="p-4 sm:p-6 bg-zinc-900/50 rounded-xl sm:rounded-2xl border border-zinc-800 backdrop-blur-sm">
             <h2 className="text-lg font-bold text-zinc-200 mb-4 flex items-center gap-2">
               <Upload className="h-5 w-5 text-emerald-500" />
               อัปโหลดจุดเก็บขยะ (Import)
@@ -249,7 +249,7 @@ export default function DispatcherPage() {
 
             <div 
               onClick={triggerFileInput}
-              className="border-2 border-dashed border-zinc-850 hover:border-emerald-500/40 rounded-xl p-8 text-center cursor-pointer transition-all duration-300 bg-zinc-950/40 group"
+              className="border-2 border-dashed border-zinc-850 hover:border-emerald-500/40 rounded-xl p-6 sm:p-8 text-center cursor-pointer transition-all duration-300 bg-zinc-950/40 group"
             >
               <FileSpreadsheet className="h-10 w-10 text-zinc-500 group-hover:text-emerald-400 mx-auto mb-3 transition-colors duration-300" />
               <p className="text-sm text-zinc-300 font-medium mb-1">
@@ -272,7 +272,7 @@ export default function DispatcherPage() {
           </div>
 
           {/* Route Optimization Control Card */}
-          <div className="p-6 bg-zinc-900/50 rounded-2xl border border-zinc-800 backdrop-blur-sm">
+          <div className="p-4 sm:p-6 bg-zinc-900/50 rounded-xl sm:rounded-2xl border border-zinc-800 backdrop-blur-sm">
             <h2 className="text-lg font-bold text-zinc-200 mb-4 flex items-center gap-2">
               <Play className="h-5 w-5 text-emerald-500" />
               จัดคิววิ่งอัจฉริยะ (Optimize)
@@ -311,7 +311,7 @@ export default function DispatcherPage() {
           </div>
 
           {/* LINE Webhook Connection Card */}
-          <div className="p-6 bg-zinc-900/50 rounded-2xl border border-zinc-800 backdrop-blur-sm">
+          <div className="p-4 sm:p-6 bg-zinc-900/50 rounded-xl sm:rounded-2xl border border-zinc-800 backdrop-blur-sm">
             <h2 className="text-lg font-bold text-zinc-200 mb-4 flex items-center gap-2">
               <MessageSquare className="h-5 w-5 text-emerald-500" />
               การเชื่อมต่อ LINE Bot Webhook
@@ -366,16 +366,16 @@ export default function DispatcherPage() {
         </div>
 
         {/* Right Side: Map Canvas and Live Location Table */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
+        <div className="lg:col-span-2 flex flex-col gap-4 sm:gap-6">
           
           {/* Map Preview Area */}
-          <div className="h-[420px] bg-zinc-900/30 rounded-2xl border border-zinc-800 relative overflow-hidden">
+          <div className="h-[300px] sm:h-[420px] bg-zinc-900/30 rounded-xl sm:rounded-2xl border border-zinc-800 relative overflow-hidden">
             <LeafletMap locations={locations} routes={routes} />
           </div>
 
           {/* Planned Routes Breakdown (if calculated) */}
           {routes.length > 0 && (
-            <div className="p-6 bg-zinc-900/50 rounded-2xl border border-zinc-800 backdrop-blur-sm">
+            <div className="p-4 sm:p-6 bg-zinc-900/50 rounded-xl sm:rounded-2xl border border-zinc-800 backdrop-blur-sm">
               <h2 className="text-lg font-bold text-zinc-200 mb-4 flex items-center gap-2">
                 <Truck className="h-5 w-5 text-emerald-500" />
                 แผนการเดินรถประจำวัน (Daily Route Plans)
@@ -383,7 +383,7 @@ export default function DispatcherPage() {
               
               <div className="space-y-4">
                 {routes.map((route, routeIdx) => (
-                  <div key={route.vehicleId} className="p-4 bg-zinc-950/60 rounded-xl border border-zinc-850">
+                  <div key={route.vehicleId} className="p-3 sm:p-4 bg-zinc-950/60 rounded-xl border border-zinc-850">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-850 pb-3 mb-3 gap-2">
                       <div className="flex items-center gap-2">
                         <span className="h-3 w-3 rounded-full" style={{ background: ROUTE_COLORS[routeIdx % ROUTE_COLORS.length] }} />
@@ -429,7 +429,7 @@ export default function DispatcherPage() {
           )}
 
           {/* Locations Table */}
-          <div className="p-6 bg-zinc-900/50 rounded-2xl border border-zinc-800 backdrop-blur-sm flex flex-col flex-1">
+          <div className="p-4 sm:p-6 bg-zinc-900/50 rounded-xl sm:rounded-2xl border border-zinc-800 backdrop-blur-sm flex flex-col flex-1">
             <h2 className="text-lg font-bold text-zinc-200 mb-4 flex items-center gap-2">
               <MapPin className="h-5 w-5 text-emerald-500" />
               จุดพิกัดรอคิวเก็บขยะ ({locations.length} จุด)
@@ -447,7 +447,7 @@ export default function DispatcherPage() {
               </div>
             ) : (
               <div className="overflow-x-auto flex-1 max-h-[300px] overflow-y-auto">
-                <table className="w-full text-left border-collapse text-sm">
+                <table className="w-full min-w-[700px] text-left border-collapse text-sm">
                   <thead>
                     <tr className="border-b border-zinc-800 text-zinc-450 font-bold">
                       <th className="py-2 px-3">ชื่อจุดเก็บ</th>

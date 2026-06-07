@@ -377,11 +377,11 @@ export default function DriverPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center p-4 selection:bg-emerald-500 selection:text-black">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center p-0 sm:p-4 selection:bg-emerald-500 selection:text-black">
       
       {/* Simulation Bar - Only visible in browser/testing mode (non-LIFF) */}
       {!isLiff && (
-        <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-4 flex items-center justify-between text-xs gap-3">
+        <div className="w-full max-w-md bg-zinc-900 border-x-0 sm:border border-zinc-800 rounded-none sm:rounded-2xl p-4 mb-4 flex items-center justify-between text-xs gap-3">
           <div className="flex items-center gap-2 shrink-0">
             <User className="h-4 w-4 text-emerald-400" />
             <span className="font-semibold text-zinc-400">พรีวิว/ทดสอบคนขับ:</span>
@@ -409,7 +409,7 @@ export default function DriverPage() {
       )}
 
       {/* Simulated LINE In-App Webview Frame */}
-      <div className="w-full max-w-md bg-zinc-900 border border-zinc-850 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[700px] relative">
+      <div className="w-full sm:max-w-md bg-zinc-900 border-x-0 sm:border border-zinc-850 rounded-none sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col h-screen sm:h-[700px] relative">
         
         {/* LINE Webview Header */}
         <header className="bg-zinc-850 px-4 py-3 flex items-center justify-between border-b border-zinc-800 shrink-0">
