@@ -263,6 +263,7 @@ export async function POST(request: NextRequest) {
     // 1. Signature Verification
     if (channelSecret && !bypassSignature) {
       if (!verifySignature(bodyText, signature, channelSecret)) {
+        console.error("LINE Webhook Error: Signature verification failed. Please verify that LINE_CHANNEL_SECRET is correct and matches the Channel Secret in LINE Developers Console.");
         return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
       }
     }
@@ -276,24 +277,25 @@ export async function POST(request: NextRequest) {
         const text = event.message.text.trim();
         const replyToken = event.replyToken;
 
-        // Fetch all locations to perform substring match
-        const dbLocations = await db.location.findMany({
-          select: { id: true, name: true }
-        });
+        try {
+          // Fetch all locations to perform substring match
+          const dbLocations = await db.location.findMany({
+            select: { id: true, name: true }
+          });
 
-        console.log("Received text:", text);
-        console.log("Fetched dbLocations count:", dbLocations.length);
+          console.log("Received text:", text);
+          console.log("Fetched dbLocations count:", dbLocations.length);
 
-        // 2. Parse Thai message
-        const parsed = parseThaiPickupMessage(text, dbLocations);
-        console.log("Parsed message result:", parsed);
+          // 2. Parse Thai message
+          const parsed = parseThaiPickupMessage(text, dbLocations);
+          console.log("Parsed message result:", parsed);
 
-        let responseText = "";
-        let flexBubble: any = null;
+          let responseText = "";
+          let flexBubble: any = null;
 
-        if (!parsed) {
-          // Provide guidance on how to use the bot
-          responseText = `สวัสดีครับ! 🤖 ผมคือระบบช่วยจัดคิวและแผนเดินรถรับขยะ
+          if (!parsed) {
+            // Provide guidance on how to use the bot
+            responseText = `สวัสดีครับ! 🤖 ผมคือระบบช่วยจัดคิวและแผนเดินรถรับขยะ
 
 กรุณาพิมพ์ข้อมูลตามรูปแบบ เช่น:
 "วันที่ 12 มิ.ย. รับขยะพลาสติกที่สยามพารากอน"
@@ -301,132 +303,132 @@ export async function POST(request: NextRequest) {
 "วันที่ 15/06 รับกระดาษที่วัดพระแก้ว 150 กก."
 
 ระบบจะทำการลงตารางงาน และสรุปรายการรับขยะของวันเดียวกันส่งกลับมาให้คุณทันทีครับ!`;
-        } else {
-          // 3. Database operations in transaction
-          const result = await db.$transaction(async (tx) => {
-            let locationId = "";
-            let finalLocationName = parsed.locationName;
+          } else {
+            // 3. Database operations in transaction
+            const result = await db.$transaction(async (tx) => {
+              let locationId = "";
+              let finalLocationName = parsed.locationName;
 
-            // Resolve location
-            const matchedLoc = dbLocations.find((l) => l.name === parsed.locationName);
-            if (matchedLoc) {
-              locationId = matchedLoc.id;
-            } else {
-              // Create a new location with default Bangkok center coords
-              const newLoc = await tx.location.create({
-                data: {
-                  name: parsed.locationName,
-                  address: parsed.locationName,
-                  latitude: 13.7563,
-                  longitude: 100.5018,
-                  expectedWeightKg: parsed.weightKg || 100,
-                },
-              });
-              locationId = newLoc.id;
-              finalLocationName = newLoc.name;
-            }
-
-            // Find or create Route for that date
-            const targetDate = parsed.date;
-            let route = await tx.route.findFirst({
-              where: { date: targetDate },
-            });
-
-            if (!route) {
-              // Find active vehicle to assign. Fallback to any vehicle if no active vehicle.
-              let vehicle = await tx.vehicle.findFirst({
-                where: { status: "ACTIVE" },
-              });
-              if (!vehicle) {
-                vehicle = await tx.vehicle.findFirst();
+              // Resolve location
+              const matchedLoc = dbLocations.find((l) => l.name === parsed.locationName);
+              if (matchedLoc) {
+                locationId = matchedLoc.id;
+              } else {
+                // Create a new location with default Bangkok center coords
+                const newLoc = await tx.location.create({
+                  data: {
+                    name: parsed.locationName,
+                    address: parsed.locationName,
+                    latitude: 13.7563,
+                    longitude: 100.5018,
+                    expectedWeightKg: parsed.weightKg || 100,
+                  },
+                });
+                locationId = newLoc.id;
+                finalLocationName = newLoc.name;
               }
 
-              if (!vehicle) {
-                throw new Error("ไม่พบข้อมูลรถขยะในระบบ กรุณาเพิ่มข้อมูลรถขยะก่อน");
+              // Find or create Route for that date
+              const targetDate = parsed.date;
+              let route = await tx.route.findFirst({
+                where: { date: targetDate },
+              });
+
+              if (!route) {
+                // Find active vehicle to assign. Fallback to any vehicle if no active vehicle.
+                let vehicle = await tx.vehicle.findFirst({
+                  where: { status: "ACTIVE" },
+                });
+                if (!vehicle) {
+                  vehicle = await tx.vehicle.findFirst();
+                }
+
+                if (!vehicle) {
+                  throw new Error("ไม่พบข้อมูลรถขยะในระบบ กรุณาเพิ่มข้อมูลรถขยะก่อน");
+                }
+
+                route = await tx.route.create({
+                  data: {
+                    vehicleId: vehicle.id,
+                    date: targetDate,
+                    status: "PENDING",
+                    totalWeightKg: 0,
+                    distanceMeters: 0,
+                    durationSeconds: 0,
+                  },
+                });
               }
 
-              route = await tx.route.create({
+              // Find max sequence order to append point
+              const lastPoint = await tx.routePoint.findFirst({
+                where: { routeId: route.id },
+                orderBy: { sequenceOrder: "desc" },
+              });
+
+              const nextSeq = lastPoint ? lastPoint.sequenceOrder + 1 : 1;
+              const expectedWeight = parsed.weightKg || 100;
+
+              // Create route point
+              await tx.routePoint.create({
                 data: {
-                  vehicleId: vehicle.id,
-                  date: targetDate,
+                  routeId: route.id,
+                  locationId,
+                  sequenceOrder: nextSeq,
+                  expectedWeightKg: expectedWeight,
                   status: "PENDING",
-                  totalWeightKg: 0,
-                  distanceMeters: 0,
-                  durationSeconds: 0,
+                  notes: parsed.item,
                 },
               });
+
+              // Update route weight
+              const allPoints = await tx.routePoint.findMany({
+                where: { routeId: route.id },
+              });
+              const totalWeight = allPoints.reduce((sum, p) => sum + p.expectedWeightKg, 0);
+
+              await tx.route.update({
+                where: { id: route.id },
+                data: {
+                  totalWeightKg: totalWeight,
+                },
+              });
+
+              return {
+                date: targetDate,
+                locationName: finalLocationName,
+                item: parsed.item,
+                weight: expectedWeight,
+              };
+            });
+
+            // 4. Retrieve all route points scheduled for the same date
+            const routesOnDate = await db.route.findMany({
+              where: { date: result.date },
+              include: {
+                vehicle: true,
+                routePoints: {
+                  orderBy: { sequenceOrder: "asc" },
+                  include: { location: true },
+                },
+              },
+            });
+
+            const thaiFormattedDate = result.date.toLocaleDateString("th-TH", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            });
+
+            let scheduleText = "";
+            let counter = 1;
+            for (const r of routesOnDate) {
+              for (const pt of r.routePoints) {
+                scheduleText += `\n• จุดที่ ${counter}: ${pt.location.name}\n  - งาน: ${pt.notes || "ขยะทั่วไป"}\n  - ปริมาณ: ${pt.expectedWeightKg} กก.\n  - ทะเบียนรถ: ${r.vehicle.plateNumber}\n  - สถานะ: ${pt.status === "PENDING" ? "ยังไม่ได้รับ (PENDING)" : pt.status}`;
+                counter++;
+              }
             }
 
-            // Find max sequence order to append point
-            const lastPoint = await tx.routePoint.findFirst({
-              where: { routeId: route.id },
-              orderBy: { sequenceOrder: "desc" },
-            });
-
-            const nextSeq = lastPoint ? lastPoint.sequenceOrder + 1 : 1;
-            const expectedWeight = parsed.weightKg || 100;
-
-            // Create route point
-            await tx.routePoint.create({
-              data: {
-                routeId: route.id,
-                locationId,
-                sequenceOrder: nextSeq,
-                expectedWeightKg: expectedWeight,
-                status: "PENDING",
-                notes: parsed.item,
-              },
-            });
-
-            // Update route weight
-            const allPoints = await tx.routePoint.findMany({
-              where: { routeId: route.id },
-            });
-            const totalWeight = allPoints.reduce((sum, p) => sum + p.expectedWeightKg, 0);
-
-            await tx.route.update({
-              where: { id: route.id },
-              data: {
-                totalWeightKg: totalWeight,
-              },
-            });
-
-            return {
-              date: targetDate,
-              locationName: finalLocationName,
-              item: parsed.item,
-              weight: expectedWeight,
-            };
-          });
-
-          // 4. Retrieve all route points scheduled for the same date
-          const routesOnDate = await db.route.findMany({
-            where: { date: result.date },
-            include: {
-              vehicle: true,
-              routePoints: {
-                orderBy: { sequenceOrder: "asc" },
-                include: { location: true },
-              },
-            },
-          });
-
-          const thaiFormattedDate = result.date.toLocaleDateString("th-TH", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          });
-
-          let scheduleText = "";
-          let counter = 1;
-          for (const r of routesOnDate) {
-            for (const pt of r.routePoints) {
-              scheduleText += `\n• จุดที่ ${counter}: ${pt.location.name}\n  - งาน: ${pt.notes || "ขยะทั่วไป"}\n  - ปริมาณ: ${pt.expectedWeightKg} กก.\n  - ทะเบียนรถ: ${r.vehicle.plateNumber}\n  - สถานะ: ${pt.status === "PENDING" ? "ยังไม่ได้รับ (PENDING)" : pt.status}`;
-              counter++;
-            }
-          }
-
-          responseText = `บันทึกรายการสำเร็จ! 🎉
+            responseText = `บันทึกรายการสำเร็จ! 🎉
 
 📌 รายการรับใหม่
 📍 สถานที่: ${result.locationName}
@@ -435,25 +437,40 @@ export async function POST(request: NextRequest) {
 _________________
 📋 คิวงานทั้งหมดประจำวันที่ ${thaiFormattedDate}:${scheduleText || "\n(ยังไม่มีคิวงานอื่น)"}`;
 
-          // Generate Flex Message
-          flexBubble = generateFlexBubble(thaiFormattedDate, result, routesOnDate);
-        }
-
-        // Send reply via LINE Reply API
-        if (replyToken && replyToken !== "test-token" && channelAccessToken) {
-          const messageObj = flexBubble || { type: "text", text: responseText };
-          try {
-            await sendLineReply(replyToken, messageObj, channelAccessToken);
-          } catch (replyErr: any) {
-            console.error("Failed to send LINE Flex message, falling back to text response:", replyErr);
-            const fallbackMessageObj = { type: "text", text: responseText };
-            await sendLineReply(replyToken, fallbackMessageObj, channelAccessToken);
+            // Generate Flex Message
+            flexBubble = generateFlexBubble(thaiFormattedDate, result, routesOnDate);
           }
-        } else {
-          // Log output during testing/signature bypass simulation
-          console.log(`\n--- [LINE WEBHOOK SIMULATION REPLY] ---`);
-          console.log(responseText);
-          console.log(`----------------------------------------\n`);
+
+          // Send reply via LINE Reply API
+          if (replyToken && replyToken !== "test-token" && channelAccessToken) {
+            const messageObj = flexBubble || { type: "text", text: responseText };
+            try {
+              await sendLineReply(replyToken, messageObj, channelAccessToken);
+            } catch (replyErr: any) {
+              console.error("Failed to send LINE Flex message, falling back to text response:", replyErr);
+              const fallbackMessageObj = { type: "text", text: responseText };
+              await sendLineReply(replyToken, fallbackMessageObj, channelAccessToken);
+            }
+          } else {
+            // Log output during testing/signature bypass simulation
+            console.log(`\n--- [LINE WEBHOOK SIMULATION REPLY] ---`);
+            console.log(responseText);
+            console.log(`----------------------------------------\n`);
+            if (!channelAccessToken) {
+              console.warn("LINE Webhook Warning: LINE_CHANNEL_ACCESS_TOKEN is not set. Cannot send real reply to LINE.");
+            }
+          }
+        } catch (eventError: any) {
+          console.error("LINE Webhook Event Processing Error:", eventError);
+          // Try to reply to the user with the error message so they know what failed
+          if (replyToken && replyToken !== "test-token" && channelAccessToken) {
+            const errorMessage = `⚠️ เกิดข้อผิดพลาดในระบบ: ${eventError.message || "ไม่สามารถประมวลผลข้อความได้"}`;
+            try {
+              await sendLineReply(replyToken, { type: "text", text: errorMessage }, channelAccessToken);
+            } catch (replyErr: any) {
+              console.error("Failed to send error reply to LINE:", replyErr);
+            }
+          }
         }
       }
     }
